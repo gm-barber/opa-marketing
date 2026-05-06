@@ -121,17 +121,20 @@ export default function OpaMarketing() {
     setLoadingImage(true);
     setGeneratedImages([]);
     const prompt = customPrompt || selectedPrompt.prompt;
+    const label = selectedPrompt.label || "מותאם אישית";
     const imgs = [];
     for (let i = 0; i < imageCount; i++) {
+      // delay between requests to avoid rate limiting
+      if (i > 0) await new Promise(r => setTimeout(r, 800));
       imgs.push({
         url: buildImageUrl(prompt),
         id: Date.now() + i,
-        prompt: selectedPrompt.label || "מותאם אישית",
+        prompt: label,
         loaded: false,
         error: false,
       });
+      setGeneratedImages([...imgs]);
     }
-    setGeneratedImages(imgs);
     setLoadingImage(false);
     if (!completedSteps.includes("images")) setCompletedSteps(p => [...p, "images"]);
   }
@@ -333,7 +336,15 @@ export default function OpaMarketing() {
                         <img src={img.url} alt={img.prompt}
                           style={{ width: "100%", height: "100%", objectFit: "cover", display: img.loaded ? "block" : "none", position: "absolute", top: 0, left: 0 }}
                           onLoad={() => setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, loaded: true} : x))}
-                          onError={() => setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, error: true} : x))}
+                          onError={(e) => {
+                            // retry once with new seed
+                            if (!e.target.dataset.retried) {
+                              e.target.dataset.retried = "1";
+                              e.target.src = buildImageUrl(img.prompt === "מותאם אישית" ? (customPrompt || selectedPrompt.prompt) : selectedPrompt.prompt);
+                            } else {
+                              setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, error: true} : x));
+                            }
+                          }}
                         />
                       </div>
                       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.8))", padding: "20px 10px 10px", display: "flex", gap: 6, justifyContent: "center" }}>
