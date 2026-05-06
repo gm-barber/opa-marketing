@@ -39,7 +39,8 @@ const STEPS = [
 
 // ── HELPERS ───────────────────────────────────────────────
 function buildImageUrl(prompt, w = 1024, h = 1024) {
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random() * 99999)}`;
+  const seed = Math.floor(Math.random() * 99999);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&model=flux&nologo=true&seed=${seed}`;
 }
 
 async function generateWithClaude(systemPrompt, userPrompt) {
@@ -100,7 +101,7 @@ export default function OpaMarketing() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [generatedImages, setGeneratedImages] = useState([]);
   const [loadingImage, setLoadingImage] = useState(false);
-  const [imageCount, setImageCount] = useState(1);
+  const [imageCount] = useState(1);
 
   // Content state
   const [selectedPostType, setSelectedPostType] = useState(POST_TYPES[0]);
@@ -298,22 +299,13 @@ export default function OpaMarketing() {
                 style={{ width: "100%", background: S.card, border: `1.5px solid ${S.border}`, borderRadius: 10, padding: "10px 12px", color: S.text, fontSize: 13, fontFamily: "'Heebo', sans-serif", resize: "vertical", direction: "ltr" }} />
             </div>
 
-            {/* Count */}
-            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 12, color: S.muted }}>כמות תמונות:</div>
-              {[1, 2, 3].map(n => (
-                <button key={n} onClick={() => setImageCount(n)}
-                  style={{ width: 36, height: 36, borderRadius: "50%", border: `2px solid ${imageCount === n ? S.gold : S.border}`, background: imageCount === n ? S.gold + "20" : "transparent", color: imageCount === n ? S.gold : S.muted, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                  {n}
-                </button>
-              ))}
-            </div>
+
 
             {/* Generate button */}
             <button onClick={generateImages} disabled={loadingImage} className="btn-hover"
               style={{ width: "100%", background: `linear-gradient(135deg, ${S.gold}, ${S.goldLight})`, color: "#0A0E1A", border: "none", borderRadius: 12, padding: "14px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'Heebo', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
               {loadingImage ? <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⚙️</span> : "🎨"}
-              {loadingImage ? "מייצר תמונות..." : "צור תמונות עכשיו"}
+              {loadingImage ? "מייצר תמונה..." : "🎨 צור תמונה"}
             </button>
 
             {/* Generated images */}
@@ -362,7 +354,7 @@ export default function OpaMarketing() {
                 </div>
                 <button onClick={generateImages} className="btn-hover"
                   style={{ width: "100%", marginTop: 10, background: "transparent", border: `1px solid ${S.gold}`, color: S.gold, borderRadius: 10, padding: 10, fontSize: 13, cursor: "pointer" }}>
-                  🔄 צור גרסאות חדשות
+                  🔄 צור תמונה נוספת
                 </button>
               </div>
             )}
