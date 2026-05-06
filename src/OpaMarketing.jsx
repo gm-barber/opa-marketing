@@ -127,7 +127,8 @@ export default function OpaMarketing() {
         url: buildImageUrl(prompt),
         id: Date.now() + i,
         prompt: selectedPrompt.label || "מותאם אישית",
-        loading: true,
+        loaded: false,
+        error: false,
       });
     }
     setGeneratedImages(imgs);
@@ -135,17 +136,8 @@ export default function OpaMarketing() {
     if (!completedSteps.includes("images")) setCompletedSteps(p => [...p, "images"]);
   }
 
-  async function downloadImage(url, name) {
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `opa-${name}-${Date.now()}.jpg`;
-      a.click();
-    } catch {
-      window.open(url, "_blank");
-    }
+  function downloadImage(url, name) {
+    window.open(url, "_blank");
   }
 
   // ── CONTENT GENERATION ────────────────────────────────
@@ -328,13 +320,26 @@ export default function OpaMarketing() {
                 <div style={{ display: "grid", gridTemplateColumns: generatedImages.length === 1 ? "1fr" : "1fr 1fr", gap: 10 }}>
                   {generatedImages.map((img, i) => (
                     <div key={img.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: `1px solid ${S.border}` }}>
-                      <img src={img.url} alt={img.prompt}
-                        style={{ width: "100%", height: generatedImages.length === 1 ? 300 : 160, objectFit: "cover", display: "block" }}
-                        onError={e => { e.target.src = "https://via.placeholder.com/400x400/1a1f35/D4A843?text=OPA!"; }} />
+                      <div style={{ position: "relative", width: "100%", height: generatedImages.length === 1 ? 300 : 160, background: "#1a2234", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {!img.loaded && !img.error && (
+                          <div style={{ textAlign: "center", color: "#D4A843" }}>
+                            <div style={{ fontSize: 28, animation: "spin 1s linear infinite", display: "inline-block" }}>⚙️</div>
+                            <div style={{ fontSize: 11, marginTop: 6 }}>יוצר תמונה...</div>
+                          </div>
+                        )}
+                        {img.error && (
+                          <div style={{ textAlign: "center", color: "#64748B", fontSize: 12 }}>❌ שגיאה — נסה שוב</div>
+                        )}
+                        <img src={img.url} alt={img.prompt}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: img.loaded ? "block" : "none", position: "absolute", top: 0, left: 0 }}
+                          onLoad={() => setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, loaded: true} : x))}
+                          onError={() => setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, error: true} : x))}
+                        />
+                      </div>
                       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.8))", padding: "20px 10px 10px", display: "flex", gap: 6, justifyContent: "center" }}>
                         <button onClick={() => downloadImage(img.url, img.prompt)} className="btn-hover"
                           style={{ background: S.gold, color: "#0A0E1A", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          ⬇️ הורד
+                          🔍 פתח
                         </button>
                         <button onClick={() => window.open(img.url, "_blank")} className="btn-hover"
                           style={{ background: "rgba(255,255,255,0.2)", color: S.white, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer" }}>
