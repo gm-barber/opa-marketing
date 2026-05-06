@@ -7,12 +7,12 @@ const LANDING_URL = "https://opa-plates.vercel.app/";
 const PRICE = "₪280 לארגז";
 
 const IMAGE_PROMPTS = [
-  { id: "shatter1", label: "שבירה דרמטית", prompt: "Greek taverna white ceramic plate shattering dramatically on dark stone floor, shards flying, dust explosion, cinematic dramatic lighting, Mediterranean atmosphere, high contrast black background, photorealistic" },
-  { id: "shatter2", label: "שברים יווניים", prompt: "Broken white Greek plate pieces scattered on elegant dark marble floor, golden candlelight ambiance, Mediterranean taverna night, artistic overhead shot, luxury aesthetic" },
-  { id: "event1", label: "אווירת טברנה", prompt: "Authentic Greek taverna interior night celebration, white plates being smashed, joyful crowd, warm golden lights, blue and white Greek decor, festive Mediterranean atmosphere" },
-  { id: "opa1", label: "OPA! מסיבה", prompt: "Jewish bar mitzvah celebration with Greek plate breaking tradition, people cheering OPA, white plates flying, confetti, elegant event hall, warm festive lights, joyful moment" },
-  { id: "stack1", label: "ארגז צלחות", prompt: "Stack of pristine white Greek ceramic plates for breaking, elegant product photography, blue and white colors, Mediterranean style, soft studio lighting, white background" },
-  { id: "hero1", label: "רגע השבירה", prompt: "Slow motion frozen moment of Greek plate breaking mid-air, perfect shards, dramatic studio lighting, black background, high speed photography aesthetic, white ceramic fragments" },
+  { id: "shatter1", label: "שבירה דרמטית", query: "greek plate smashing dramatic" },
+  { id: "shatter2", label: "שברים יווניים", query: "broken ceramic plate shards floor" },
+  { id: "event1", label: "אווירת טברנה", query: "greek taverna celebration night" },
+  { id: "opa1", label: "צלחת טסה באוויר", query: "plate flying smash party" },
+  { id: "stack1", label: "צלחות לבנות", query: "white ceramic plates stack greek" },
+  { id: "hero1", label: "רגע השבירה", query: "plate breaking slow motion shards" },
 ];
 
 const POST_TYPES = [
@@ -38,9 +38,10 @@ const STEPS = [
 ];
 
 // ── HELPERS ───────────────────────────────────────────────
-function buildImageUrl(prompt, w = 1024, h = 1024) {
-  const seed = Math.floor(Math.random() * 99999);
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&model=flux&nologo=true&seed=${seed}`;
+async function searchLexicaImages(query) {
+  const res = await fetch(`https://lexica.art/api/v1/search?q=${encodeURIComponent(query)}`);
+  const data = await res.json();
+  return data.images || [];
 }
 
 async function generateWithClaude(systemPrompt, userPrompt) {
@@ -118,12 +119,27 @@ export default function OpaMarketing() {
   ];
 
   // ── IMAGE GENERATION ───────────────────────────────────
-  function generateImages() {
-    const prompt = customPrompt || selectedPrompt.prompt;
-    const url = buildImageUrl(prompt);
-    // Open directly in new tab - bypasses rate limits and CORS
-    window.open(url, "_blank");
-    setGeneratedImages([{ url, id: Date.now(), prompt: selectedPrompt.label, loaded: false, error: false }]);
+  async function generateImages() {
+    setLoadingImage(true);
+    setGeneratedImages([]);
+    try {
+      const query = customPrompt || selectedPrompt.query || "greek plate breaking";
+      const results = await searchLexicaImages(query);
+      if (results.length === 0) { setLoadingImage(false); return; }
+      // Pick 4 random images from results
+      const shuffled = results.sort(() => Math.random() - 0.5).slice(0, 4);
+      const imgs = shuffled.map((r, i) => ({
+        url: r.src,
+        id: Date.now() + i,
+        prompt: selectedPrompt.label,
+        loaded: false,
+        error: false,
+      }));
+      setGeneratedImages(imgs);
+    } catch(e) {
+      console.error(e);
+    }
+    setLoadingImage(false);
     if (!completedSteps.includes("images")) setCompletedSteps(p => [...p, "images"]);
   }
 
@@ -289,24 +305,40 @@ export default function OpaMarketing() {
 
 
             {/* Generate button */}
-            <button onClick={generateImages} className="btn-hover"
+            <button onClick={generateImages} disabled={loadingImage} className="btn-hover"
               style={{ width: "100%", background: `linear-gradient(135deg, ${S.gold}, ${S.goldLight})`, color: "#0A0E1A", border: "none", borderRadius: 12, padding: "14px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'Heebo', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
               "🎨"
-              "צור תמונה — תיפתח בטאב חדש"
+              {loadingImage ? "מחפש תמונות..." : "🎨 מצא תמונות AI"}
             </button>
 
             {/* Generated images */}
             {generatedImages.length > 0 && (
-              <div className="fade" style={{ background: S.card, borderRadius: 12, border: `1px solid ${S.gold}40`, padding: 16 }}>
-                <div style={{ fontSize: 13, color: S.gold, fontWeight: 600, marginBottom: 12 }}>✨ התמונה נפתחה בטאב חדש!</div>
-                <div style={{ fontSize: 13, color: S.muted, lineHeight: 1.9, marginBottom: 14 }}>
-                  כדי לשמור:<br/>
-                  📱 <strong>נייד</strong> — לחץ לחיצה ארוכה על התמונה → "שמור תמונה"<br/>
-                  💻 <strong>מחשב</strong> — קליק ימני → "שמור תמונה בשם"
+              <div>
+                <div style={{ fontSize: 13, color: S.gold, fontWeight: 600, marginBottom: 10 }}>✨ {generatedImages.length} תמונות נמצאו — לחץ לפתיחה:</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {generatedImages.map((img, i) => (
+                    <div key={img.id} style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${S.border}`, position: "relative" }}>
+                      <div style={{ height: 140, background: "#1a2234", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                        {!img.loaded && !img.error && (
+                          <div style={{ fontSize: 20, animation: "spin 1s linear infinite", display: "inline-block" }}>⚙️</div>
+                        )}
+                        <img src={img.url} alt="תמונה שיווקית"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: img.loaded ? "block" : "none", position: "absolute", inset: 0 }}
+                          onLoad={() => setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, loaded: true} : x))}
+                          onError={() => setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, error: true, loaded: true} : x))}
+                          crossOrigin="anonymous"
+                        />
+                      </div>
+                      <button onClick={() => window.open(img.url, "_blank")}
+                        style={{ width: "100%", background: S.gold, color: "#0A0E1A", border: "none", padding: "7px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        🔍 פתח ושמור
+                      </button>
+                    </div>
+                  ))}
                 </div>
                 <button onClick={generateImages} className="btn-hover"
-                  style={{ width: "100%", background: `linear-gradient(135deg, ${S.gold}, ${S.goldLight})`, color: "#0A0E1A", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                  🎨 צור תמונה נוספת (טאב חדש)
+                  style={{ width: "100%", marginTop: 10, background: "transparent", border: `1px solid ${S.gold}`, color: S.gold, borderRadius: 10, padding: 10, fontSize: 13, cursor: "pointer" }}>
+                  🔄 תמונות אחרות
                 </button>
               </div>
             )}
