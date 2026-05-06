@@ -118,25 +118,12 @@ export default function OpaMarketing() {
   ];
 
   // ── IMAGE GENERATION ───────────────────────────────────
-  async function generateImages() {
-    setLoadingImage(true);
-    setGeneratedImages([]);
+  function generateImages() {
     const prompt = customPrompt || selectedPrompt.prompt;
-    const label = selectedPrompt.label || "מותאם אישית";
-    const imgs = [];
-    for (let i = 0; i < imageCount; i++) {
-      // delay between requests to avoid rate limiting
-      if (i > 0) await new Promise(r => setTimeout(r, 800));
-      imgs.push({
-        url: buildImageUrl(prompt),
-        id: Date.now() + i,
-        prompt: label,
-        loaded: false,
-        error: false,
-      });
-      setGeneratedImages([...imgs]);
-    }
-    setLoadingImage(false);
+    const url = buildImageUrl(prompt);
+    // Open directly in new tab - bypasses rate limits and CORS
+    window.open(url, "_blank");
+    setGeneratedImages([{ url, id: Date.now(), prompt: selectedPrompt.label, loaded: false, error: false }]);
     if (!completedSteps.includes("images")) setCompletedSteps(p => [...p, "images"]);
   }
 
@@ -302,59 +289,24 @@ export default function OpaMarketing() {
 
 
             {/* Generate button */}
-            <button onClick={generateImages} disabled={loadingImage} className="btn-hover"
+            <button onClick={generateImages} className="btn-hover"
               style={{ width: "100%", background: `linear-gradient(135deg, ${S.gold}, ${S.goldLight})`, color: "#0A0E1A", border: "none", borderRadius: 12, padding: "14px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'Heebo', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
-              {loadingImage ? <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⚙️</span> : "🎨"}
-              {loadingImage ? "מייצר תמונה..." : "🎨 צור תמונה"}
+              "🎨"
+              "צור תמונה — תיפתח בטאב חדש"
             </button>
 
             {/* Generated images */}
             {generatedImages.length > 0 && (
-              <div>
-                <div style={{ fontSize: 13, color: S.gold, fontWeight: 600, marginBottom: 12 }}>✨ התמונות מוכנות — לחץ להורדה:</div>
-                <div style={{ display: "grid", gridTemplateColumns: generatedImages.length === 1 ? "1fr" : "1fr 1fr", gap: 10 }}>
-                  {generatedImages.map((img, i) => (
-                    <div key={img.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: `1px solid ${S.border}` }}>
-                      <div style={{ position: "relative", width: "100%", height: generatedImages.length === 1 ? 300 : 160, background: "#1a2234", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {!img.loaded && !img.error && (
-                          <div style={{ textAlign: "center", color: "#D4A843" }}>
-                            <div style={{ fontSize: 28, animation: "spin 1s linear infinite", display: "inline-block" }}>⚙️</div>
-                            <div style={{ fontSize: 11, marginTop: 6 }}>יוצר תמונה...</div>
-                          </div>
-                        )}
-                        {img.error && (
-                          <div style={{ textAlign: "center", color: "#64748B", fontSize: 12 }}>❌ שגיאה — נסה שוב</div>
-                        )}
-                        <img src={img.url} alt={img.prompt}
-                          style={{ width: "100%", height: "100%", objectFit: "cover", display: img.loaded ? "block" : "none", position: "absolute", top: 0, left: 0 }}
-                          onLoad={() => setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, loaded: true} : x))}
-                          onError={(e) => {
-                            // retry once with new seed
-                            if (!e.target.dataset.retried) {
-                              e.target.dataset.retried = "1";
-                              e.target.src = buildImageUrl(img.prompt === "מותאם אישית" ? (customPrompt || selectedPrompt.prompt) : selectedPrompt.prompt);
-                            } else {
-                              setGeneratedImages(prev => prev.map(x => x.id === img.id ? {...x, error: true} : x));
-                            }
-                          }}
-                        />
-                      </div>
-                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.8))", padding: "20px 10px 10px", display: "flex", gap: 6, justifyContent: "center" }}>
-                        <button onClick={() => downloadImage(img.url, img.prompt)} className="btn-hover"
-                          style={{ background: S.gold, color: "#0A0E1A", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          🔍 פתח
-                        </button>
-                        <button onClick={() => window.open(img.url, "_blank")} className="btn-hover"
-                          style={{ background: "rgba(255,255,255,0.2)", color: S.white, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer" }}>
-                          🔍 הגדל
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+              <div className="fade" style={{ background: S.card, borderRadius: 12, border: `1px solid ${S.gold}40`, padding: 16 }}>
+                <div style={{ fontSize: 13, color: S.gold, fontWeight: 600, marginBottom: 12 }}>✨ התמונה נפתחה בטאב חדש!</div>
+                <div style={{ fontSize: 13, color: S.muted, lineHeight: 1.9, marginBottom: 14 }}>
+                  כדי לשמור:<br/>
+                  📱 <strong>נייד</strong> — לחץ לחיצה ארוכה על התמונה → "שמור תמונה"<br/>
+                  💻 <strong>מחשב</strong> — קליק ימני → "שמור תמונה בשם"
                 </div>
                 <button onClick={generateImages} className="btn-hover"
-                  style={{ width: "100%", marginTop: 10, background: "transparent", border: `1px solid ${S.gold}`, color: S.gold, borderRadius: 10, padding: 10, fontSize: 13, cursor: "pointer" }}>
-                  🔄 צור תמונה נוספת
+                  style={{ width: "100%", background: `linear-gradient(135deg, ${S.gold}, ${S.goldLight})`, color: "#0A0E1A", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  🎨 צור תמונה נוספת (טאב חדש)
                 </button>
               </div>
             )}
